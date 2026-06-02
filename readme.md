@@ -15,7 +15,7 @@ The export button is placed next to the share button.
 
 I made this extension in my free time over a couple days because I wanted this feature and also [this tweet](https://x.com/tylerangert/status/1902038162836246550). Might be scuffed on edge cases but I tried my best.
 
-This extension does **NOT** store, upload, or share any data remotely. It does **NOT** store any personal or private/identifiable data. All content is stored on the local machine and the local users's clipboard. Only stores the configuration for the output format (string enum [markdown, html, xml, json] for ease-of-use.
+本仓库改造后的本地导出路径仍不会上传或分享对话内容，内容只会写入本机文件或用户剪贴板。设置页会保存导出格式，以及用户主动填写的腾讯文档配置字段（Client ID、Open ID、Access Token、Client Secret、API Key）；这些敏感字段通过浏览器扩展 storage 保存，不会写入源码、测试或示例文档。腾讯文档服务模块已按官方 OpenAPI 封装新建在线文档和写入 Doc 内容请求，页面内 Export 下拉菜单已接入“Export to Tencent Docs”入口，当前 popup 尚未接入该入口。
 
 ![Export Video Example](https://github.com/user-attachments/assets/2705e502-9e1f-41a8-88e9-3b41242d6c0f)
 

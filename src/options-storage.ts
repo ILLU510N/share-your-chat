@@ -3,13 +3,22 @@ import browser from 'webextension-polyfill';
 
 export type ExportType = 'markdown' | 'xml' | 'json' | 'html';
 
-export interface Options {
+export interface TencentDocsOptions {
+  tencentDocsClientId: string;
+  tencentDocsAccessToken: string;
+  tencentDocsOpenId: string;
+}
+
+export interface Options extends TencentDocsOptions {
   exportType: ExportType;
   [key: string]: string;
 }
 
 export const defaultOptions: Options = {
   exportType: 'markdown',
+  tencentDocsClientId: '',
+  tencentDocsAccessToken: '',
+  tencentDocsOpenId: '',
 };
 
 // Create a wrapper that handles cases where storage API is not available
@@ -34,7 +43,8 @@ class SafeOptionsStorage {
       this.optionsSync = new OptionsSync<Options>({
         defaults: defaultOptions,
         migrations: [OptionsSync.migrations.removeUnused],
-        logging: true,
+        // 腾讯文档配置可能包含密钥，禁止 options-sync 在控制台输出配置内容。
+        logging: false,
       });
 
       return this.optionsSync;

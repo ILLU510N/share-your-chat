@@ -83,7 +83,7 @@ export async function findTextareaByScroll(turn: Element): Promise<Element | nul
 
     // if textarea not found after 2 seconds, start bidirectional scrolling
     if (!textareaElement && retryCount > 20 && scrollAttempts < maxScrollAttempts) {
-      // find the main scrollable container in aistudio
+      // 查找 Gemini 页面主滚动容器
       const scrollContainer =
         document.querySelector('ms-autoscroll-container') ||
         document.querySelector('ms-prompt-scrollbar') ||

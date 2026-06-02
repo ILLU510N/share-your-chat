@@ -5,6 +5,7 @@ import { getClaudeChatContent } from '@/modules/claude/chat-content';
 import { getGeminiChatContent } from '@/modules/gemini/chat-content';
 
 import { formatContent } from './content-handlers';
+import { getAssistantDisplayName } from './platform-metadata';
 import { detectSite } from './site-detection';
 import { ChatContent, Message } from './types';
 
@@ -37,6 +38,8 @@ export async function getChatContent(restoreClipboard: boolean = false): Promise
     await navigator.clipboard.writeText(originalClipboard);
   }
 
-  const formattedContent = await formatContent(messages, format);
+  const formattedContent = await formatContent(messages, format, {
+    assistantDisplayName: getAssistantDisplayName(site),
+  });
   return { format, content: formattedContent, messageCount: messages.length, failedMessages };
 }

@@ -8,7 +8,7 @@ import {
 import { Message } from '@/modules/types';
 
 export const getGeminiChatContent = async () => {
-  // aistudio.google.com (Gemini)
+  // Gemini 站点的会话消息节点
   const chatTurns = document.querySelectorAll('ms-chat-turn');
 
   let failedGeminiMessages = 0;

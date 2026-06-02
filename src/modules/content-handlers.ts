@@ -1,5 +1,9 @@
 import { Message } from './types';
 
+export interface FormatMetadata {
+  assistantDisplayName?: string;
+}
+
 export async function extractFormattedText(element: Element): Promise<string> {
   return new Promise((resolve) => {
     let formattedText = '';
@@ -131,13 +135,32 @@ export async function extractFormattedText(element: Element): Promise<string> {
   });
 }
 
-export async function formatContent(messages: Array<Message>, format: string): Promise<string> {
+function getMarkdownRoleHeading(role: string, metadata?: FormatMetadata): string {
+  if (role === 'assistant') {
+    return metadata?.assistantDisplayName || 'Assistant';
+  }
+
+  return 'User';
+}
+
+function getSafeRole(role: string): 'assistant' | 'user' {
+  return role === 'assistant' ? 'assistant' : 'user';
+}
+
+function getDisplayRole(role: string, metadata?: FormatMetadata): string {
+  return role === 'assistant' ? getMarkdownRoleHeading(role, metadata) : 'User';
+}
+
+export async function formatContent(
+  messages: Array<Message>,
+  format: string,
+  metadata?: FormatMetadata
+): Promise<string> {
   switch (format) {
     case 'markdown':
       return messages
         .map(
-          ({ role, content }) =>
-            `### ${role === 'assistant' ? 'Assistant' : 'User'}\n\n${content}\n\n`
+          ({ role, content }) => `### ${getMarkdownRoleHeading(role, metadata)}\n\n${content}\n\n`
         )
         .join('');
 
@@ -145,7 +168,8 @@ export async function formatContent(messages: Array<Message>, format: string): P
       return JSON.stringify(
         {
           messages: messages.map(({ role, content }) => ({
-            role: role === 'assistant' ? 'assistant' : 'user',
+            role: getSafeRole(role),
+            displayRole: getDisplayRole(role, metadata),
             content,
           })),
         },
@@ -156,7 +180,13 @@ export async function formatContent(messages: Array<Message>, format: string): P
     case 'xml':
       return `<?xml version="1.0" encoding="UTF-8"?>\n<conversation>\n${messages
         .map(({ role, content }) => {
-          const safeRole = role === 'assistant' ? 'assistant' : 'user';
+          const safeRole = getSafeRole(role);
+          const safeDisplayRole = getDisplayRole(role, metadata)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
 
           const safeContent = content
             .replace(/&/g, '&amp;')
@@ -165,14 +195,14 @@ export async function formatContent(messages: Array<Message>, format: string): P
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&apos;');
 
-          return `  <message role="${safeRole}">\n    <content>${safeContent}</content>\n  </message>`;
+          return `  <message role="${safeRole}" display-role="${safeDisplayRole}">\n    <content>${safeContent}</content>\n  </message>`;
         })
         .join('\n')}\n</conversation>`;
 
     case 'html':
       return `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8">\n  <title>Chat Export</title>\n  <style>\n    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }\n    .message { margin-bottom: 3rem; }\n    .role { font-weight: bold; margin-bottom: 1rem; font-size: 1.1em; }\n    .content { white-space: pre-wrap; }\n    .content p { margin: 1em 0; }\n    .content h1, .content h2, .content h3, .content h4 { margin: 1.5em 0 0.5em; }\n    .content ul, .content ol { margin: 1em 0; padding-left: 2em; }\n    .content li { margin: 0.5em 0; }\n    .content strong { font-weight: 600; }\n    .content em { font-style: italic; }\n    .content code { font-family: monospace; background: #f1f1f1; padding: 0.2em 0.4em; border-radius: 3px; }\n    .content pre { background: #f8f8f8; padding: 1em; border-radius: 5px; overflow-x: auto; }\n  </style>\n</head>\n<body>\n${messages
         .map(({ role, content }) => {
-          const safeRole = role === 'assistant' ? 'Assistant' : 'User';
+          const safeRole = getDisplayRole(role, metadata);
 
           // escape HTML characters
           let formattedContent = content
@@ -233,8 +263,7 @@ export async function formatContent(messages: Array<Message>, format: string): P
     default:
       return messages
         .map(
-          ({ role, content }) =>
-            `### ${role === 'assistant' ? 'Assistant' : 'User'}\n\n${content}\n\n`
+          ({ role, content }) => `### ${getMarkdownRoleHeading(role, metadata)}\n\n${content}\n\n`
         )
         .join('');
   }

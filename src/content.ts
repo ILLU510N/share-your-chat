@@ -6,6 +6,153 @@ import { createExportButton } from '@/modules/ui';
 
 console.log(' Content script loaded for', browser.runtime.getManifest().name);
 
+type GeminiInsertionPoint = {
+  container: HTMLElement;
+  referenceChild: HTMLElement | null;
+};
+
+function isVisibleElement(element: Element | null): element is HTMLElement {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) {
+    return false;
+  }
+
+  const styles = window.getComputedStyle(element);
+  return styles.display !== 'none' && styles.visibility !== 'hidden';
+}
+
+function getGeminiHeaderButtons(): HTMLElement[] {
+  const selectors = [
+    'top-bar-actions button',
+    'top-bar-actions [role="button"]',
+    'top-bar-actions [role="link"]',
+    '.top-bar-actions button',
+    '.top-bar-actions [role="button"]',
+    '.top-bar-actions [role="link"]',
+    'header button',
+    'header [role="button"]',
+    'header [role="link"]',
+    '[role="banner"] button',
+    '[role="banner"] [role="button"]',
+    '[role="banner"] [role="link"]',
+  ];
+  const seen = new Set<HTMLElement>();
+  const buttons: HTMLElement[] = [];
+
+  for (const selector of selectors) {
+    for (const element of document.querySelectorAll(selector)) {
+      if (!isVisibleElement(element) || seen.has(element)) {
+        continue;
+      }
+
+      if (element.closest('[data-testid="export-chat-button"]')) {
+        continue;
+      }
+
+      const rect = element.getBoundingClientRect();
+      if (rect.top > 240) {
+        continue;
+      }
+
+      seen.add(element);
+      buttons.push(element);
+    }
+  }
+
+  return buttons.sort((left, right) => {
+    const leftRect = left.getBoundingClientRect();
+    const rightRect = right.getBoundingClientRect();
+    const verticalDiff = leftRect.top - rightRect.top;
+
+    if (Math.abs(verticalDiff) > 24) {
+      return verticalDiff;
+    }
+
+    return rightRect.right - leftRect.right;
+  });
+}
+
+function countButtonLikeChildren(element: HTMLElement): number {
+  return Array.from(element.children).filter((child) => {
+    if (!(child instanceof HTMLElement) || !isVisibleElement(child)) {
+      return false;
+    }
+
+    if (child.matches('[data-testid="export-chat-button"]')) {
+      return false;
+    }
+
+    return (
+      child.matches('button, [role="button"], [role="link"]') ||
+      child.querySelector('button, [role="button"], [role="link"]') !== null
+    );
+  }).length;
+}
+
+function findGeminiInsertionPoint(): GeminiInsertionPoint | null {
+  const headerButtons = getGeminiHeaderButtons();
+
+  for (const anchorButton of headerButtons) {
+    let current: HTMLElement | null = anchorButton;
+
+    while (current?.parentElement && current.parentElement !== document.body) {
+      const nextContainer = current.parentElement as HTMLElement;
+      const rect = nextContainer.getBoundingClientRect();
+
+      if (rect.top > 240) {
+        break;
+      }
+
+      if (countButtonLikeChildren(nextContainer) >= 2) {
+        return { container: nextContainer, referenceChild: current };
+      }
+
+      current = nextContainer;
+    }
+
+    if (anchorButton.parentElement) {
+      return {
+        container: anchorButton.parentElement,
+        referenceChild: anchorButton,
+      };
+    }
+  }
+
+  return null;
+}
+
+function insertGeminiExportButton(): boolean {
+  if (document.querySelector('[data-testid="export-chat-button"]')) {
+    return true;
+  }
+
+  const exportButton = createExportButton();
+  const insertionPoint = findGeminiInsertionPoint();
+
+  if (insertionPoint) {
+    if (
+      insertionPoint.referenceChild &&
+      insertionPoint.container.contains(insertionPoint.referenceChild)
+    ) {
+      insertionPoint.container.insertBefore(exportButton, insertionPoint.referenceChild);
+    } else {
+      insertionPoint.container.appendChild(exportButton);
+    }
+
+    return true;
+  }
+
+  // Gemini 页面在未登录或新版布局下可能没有稳定的 header/button 锚点，
+  // 这时退回到扩展自有的右上角固定挂载，保证入口始终可见。
+  exportButton.classList.add('chat-export-gemini-floating');
+  document.body.appendChild(exportButton);
+  return true;
+}
+
 // listen for messages from popup
 browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (
@@ -65,16 +212,7 @@ function init() {
           buttonAdded = true;
         }
       } else if (site === 'gemini') {
-        const toolbarRight = document.querySelector('ms-toolbar .toolbar-right');
-        if (toolbarRight && !document.querySelector('[data-testid="export-chat-button"]')) {
-          const exportButton = createExportButton();
-          // insert before the last button (tune/settings button)
-          const lastButton = toolbarRight.lastElementChild;
-          if (lastButton && lastButton.tagName === 'BUTTON') {
-            toolbarRight.insertBefore(exportButton, lastButton);
-          } else {
-            toolbarRight.appendChild(exportButton);
-          }
+        if (insertGeminiExportButton()) {
           buttonAdded = true;
         }
       } else {
@@ -115,7 +253,8 @@ function init() {
     // observe more selectively - target likely parent containers instead of entire body
     const targetElement =
       site === 'gemini'
-        ? document.querySelector('ms-app, main, [role="main"]') || document.body
+        ? document.querySelector('top-bar-actions, header, [role="banner"], main, [role="main"]') ||
+          document.body
         : document.body;
 
     observer.observe(targetElement, {

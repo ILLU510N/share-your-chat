@@ -6,3 +6,57 @@
   background: #fff;
   z-index: 999999;
 }
+
+.chat-export-gemini-container {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-inline-end: 8px;
+}
+
+.chat-export-gemini-floating {
+  position: fixed !important;
+  top: 16px;
+  right: 88px;
+  z-index: 2147483646;
+  margin-inline-end: 0;
+}
+
+.chat-export-gemini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.chat-export-gemini-button:hover {
+  background: rgba(128, 128, 128, 0.14);
+  border-color: rgba(128, 128, 128, 0.55);
+}
+
+.chat-export-gemini-button:focus-visible {
+  outline: 2px solid rgba(26, 115, 232, 0.35);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .chat-export-gemini-floating {
+    top: 16px;
+    right: 16px;
+  }
+}

@@ -2,11 +2,13 @@
   "private": true,
   "scripts": {
     "prepare": "husky",
-    "prebuild": "rm -rf dist",
-    "build": "NODE_NO_WARNINGS=1 parcel build --config @parcel/config-webextension",
-    "watch": "NODE_NO_WARNINGS=1 parcel watch --no-hmr --config @parcel/config-webextension",
+    "prebuild": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "node --no-warnings node_modules/parcel/lib/bin.js build --config @parcel/config-webextension",
+    "watch": "node --no-warnings node_modules/parcel/lib/bin.js watch --no-hmr --config @parcel/config-webextension",
     "check": "run-p check:*",
+    "web-ext": "web-ext run -t chromium",
     "check:typescript": "tsc --noEmit",
+    "check:unit": "node --test --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.ts\"",
     "check:eslint": "eslint .",
     "check:prettier": "prettier --check .",
     "fix": "run-p fix:*",
@@ -68,6 +70,7 @@
       "startUrl": [
         "https://chatgpt.com",
         "https://claude.ai",
+        "https://gemini.google.com",
         "https://aistudio.google.com"
       ]
     }

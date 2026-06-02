@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/chrome-manifest",
-  "name": "Chat Export",
-  "version": "0.0.5",
-  "description": "Export LLM chat conversations to Markdown, XML, JSON, and HTML",
+  "name": "Share Your Chat",
+  "version": "0.0.1",
+  "description": "Share LLM chat conversations to Markdown, XML, JSON, and HTML. Sync md file to Tencent docs",
   "manifest_version": 3,
   "minimum_chrome_version": "121",
   "browser_specific_settings": {
@@ -18,13 +18,22 @@
     "128": "icon.png"
   },
   "permissions": ["storage", "clipboardWrite", "clipboardRead"],
-  "host_permissions": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://docs.qq.com/*"
+  ],
+  "background": {
+    "service_worker": "background.ts",
+    "type": "module"
+  },
   "content_scripts": [
     {
       "matches": [
         "https://chat.openai.com/*",
         "https://chatgpt.com/*",
         "https://claude.ai/*",
+        "https://gemini.google.com/*",
         "https://aistudio.google.com/*"
       ],
       "js": ["content.ts"],
